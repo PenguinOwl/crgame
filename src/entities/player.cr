@@ -1,3 +1,13 @@
+module Math
+  def self.absmax(num1, num2)
+    if num1.abs > num2.abs
+      return num1
+    else
+      return num2
+    end
+  end
+end
+
 class Player < Entity
   RUN_SPEED = 900f32
   GROUND_FRICTION = 15000f32
@@ -110,6 +120,7 @@ class Player < Entity
     unless @dashing
       if @can_dash && controllable && Engine.input.consume_dash
         @dash_action = Action.new do |action|
+          old_velocity = @velocity
           action.frame 1 do
             @velocity = Vector.new
             @physics = false
@@ -119,7 +130,7 @@ class Player < Entity
             velocity = Vector.new
             norm_check = 0
             if Engine.input.left_held? || Engine.input.right_held?
-              velocity.x = Engine.input.left_held? ? DASH_SPEED * -1 : DASH_SPEED
+              velocity.x = Math.max(old_velocity.x.abs, DASH_SPEED) * (Engine.input.left_held? ? -1 : 1)
               norm_check += 1
             end
             if Engine.input.up_held? || Engine.input.down_held?
