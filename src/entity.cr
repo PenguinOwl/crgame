@@ -1,11 +1,17 @@
 abstract class Entity < SF::Transformable
   include SF::Drawable
   property children = [] of Entity
+  property offset : Proc(Vector) = ->(){Vector.new}
+  def position
+    vector = super
+    if offset = @offset.call
+      return vector + offset
+    else
+      return vector
+    end
+  end
   def add(entity : Entity)
-    puts @children
     @children << entity
-    puts @children, entity
-    entity.load
   end
   def remove(entity : Entity)
     entity.unload
@@ -63,6 +69,7 @@ class Action < Entity
   end
   def unload
     calls.clear
+    super
   end
 end
 
