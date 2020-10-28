@@ -6,10 +6,16 @@ alias Vector = SF::Vector2f
 
 class Engine
   property scene : Scene
+  @@instance : Engine | Nil
   @@time = SF.seconds(0)
   @@input : Input = Input.new
   def initialize(@scene, input)
     @@input = input
+    @@instance = self
+  end
+
+  def self.instance
+    @@instance.not_nil!
   end
 
   def self.time

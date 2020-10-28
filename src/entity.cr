@@ -74,4 +74,31 @@ class Action < Entity
 end
 
 class Scene < Entity
+  property debug = [] of Tuple(Collider, Collider)
+  property colliders = [] of Collider
+  def update
+    super
+    debug.clear
+    colliders.sort_by!{|collider| collider.bounds[0].x.to_i}
+    active = [] of Tuple(Collider, Tuple(Vector, Vector))
+    possible = Deque(Tuple(Collider, Collider)).new
+    colliders.map{|collider| {collider, collider.bounds}}.each do |collider, bounds|
+      active.select! do |active_collider, active_bounds|
+        if active_bounds[1].x < bounds[0].x
+          next false
+        end
+        possible.push({collider, active_collider})
+        debug << {collider, active_collider}
+        next true
+      end
+      active << {collider, bounds}
+    end
+    while pair = possible.shift?
+      if pair[0].collide pair[1]
+        pair[0].trigger pair[1]
+        pair[1].trigger pair[0]
+      end
+    end
+    true
+  end
 end

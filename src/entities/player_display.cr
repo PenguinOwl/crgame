@@ -22,7 +22,7 @@ class PlayerDisplay < Entity
       @player.velocity.y.round,
       @player.facing,
       @box.touching,
-      @box.collider.position,
+      Engine.instance.scene.debug,
     ].map(&.to_s.rjust(20)).join("\n")
     return true
   end

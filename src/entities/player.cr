@@ -24,7 +24,7 @@ class Player < Entity
   property dashing = false
   property physics = true
   property can_dash = true
-  property collider = Collider::Capsule.new(Vector.new, Vector.new(0, 50), 25f32)
+  property collider = Collider::Capsule.new(Vector.new(25, 25), Vector.new(25, 75), 25f32)
   property facing = -1
   @dash_action = nil
   @jumping = 0
