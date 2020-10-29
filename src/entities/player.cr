@@ -8,6 +8,13 @@ module Math
   end
 end
 
+struct SF::Vector2(T)
+  def rotate(rad)
+    rad = -1 * rad + Math::PI / 2
+    return SF::Vector2.new(x*Math.cos(rad) - y*Math.sin(rad), x*Math.sin(rad) + y*Math.cos(rad))
+  end
+end
+
 class Player < Entity
   RUN_SPEED = 900f32
   GROUND_FRICTION = 15000f32
@@ -22,6 +29,7 @@ class Player < Entity
   property velocity = Vector.new(0, 0)
   property controllable = true
   property dashing = false
+  property attacking = false
   property physics = true
   property can_dash = true
   property collider = PlayerCollider.new(Vector.new(0, 0), Vector.new(50, 100))
@@ -30,6 +38,7 @@ class Player < Entity
   @dash_action = nil
   @jumping = 0
   @wall_jumping = 0
+  @times_attacked = 0
   @shape = SF::RectangleShape.new({50, 100})
   def load
     @shape.fill_color = SF.color(100, 250, 50)
@@ -122,11 +131,73 @@ class Player < Entity
       end
     end
 
+    # Attacking
+    unless @attacking
+      if controllable && Engine.input.consume_attack
+        @attacking = true
+        action = Action.new do |action|
+          @times_attacked += 1
+          old_velocity = @velocity
+          start_pos = position + Vector.new(25, 50)
+          action.frame 1 do
+            if @velocity.y > 0 && !on_ground?
+              case @times_attacked
+              when 1
+                @velocity.y *= 0.3
+              when 2
+                @velocity.y *= 0.5
+              end
+            end
+            if @velocity.y.abs < 300 && !on_ground?
+              @physics = false
+              @velocity.y = 0
+            end
+            old_velocity = @velocity
+          end
+          direction_vector = Vector.new
+          direction = 0.0
+          action.frame 4 do
+            norm_check = 0
+            if Engine.input.left_held? || Engine.input.right_held?
+              direction_vector.x = Engine.input.right_held? ? 1f32 : -1f32
+              norm_check += 1
+            end
+            if Engine.input.up_held? || Engine.input.down_held?
+              direction_vector.y = Engine.input.up_held? ? -1f32 : 1f32
+              norm_check += 1
+            end
+            if norm_check == 2
+              direction_vector /= Math.sqrt 2f32
+            elsif norm_check == 0
+              direction_vector.x = facing.to_f32
+            end
+            direction = Math.atan2(direction_vector.x, direction_vector.y)
+            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, -70).rotate(direction), 50f32, 10.0, 2)
+          end
+          action.frame 6 do
+            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, 0).rotate(direction), 50f32, 10.0, 2)
+          end
+          action.frame 8 do
+            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, 70).rotate(direction), 50f32, 10.0, 2)
+          end
+          action.frame 10 do
+            @physics = true
+          end
+          action.frame 30 do
+            @attacking = false
+          end
+        end
+        add action
+      end
+    end
+
+
     # Dashing
-    unless @dashing
+    unless @dashing || @attacking
       if @can_dash && controllable && Engine.input.consume_dash
         @dash_action = Action.new do |action|
           old_velocity = @velocity
+          start_pos = position + Vector.new(25, 50)
           action.frame 1 do
             @velocity = Vector.new
             @physics = false
@@ -153,11 +224,21 @@ class Player < Entity
             @controllable = true
           end
           stored_velo = 0f32
+          direction = 0.0
           action.frame 7 do
             stored_velo = @velocity.x
+            direction = Math.atan2(@velocity.x, @velocity.y)
             @velocity /= 5
+            action.add hitbox = Hitbox.new(start_pos, position + Vector.new(25, 50), 40f32, 5.0, 3)
+            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(100, -130).rotate(direction), 40f32, 10.0, 2)
+          end
+          action.frame 8 do
+            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(180, 0).rotate(direction), 25f32, 12.0, 2)
           end
           action.frame 10 do
+            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(100, 130).rotate(direction), 35f32, 10.0, 2)
+          end
+          action.frame 12 do
             @velocity.x = stored_velo / 3
             end_dash
           end
@@ -170,6 +251,7 @@ class Player < Entity
 
     # Refill actions
     if on_ground?
+      @times_attacked = 0
       @can_dash = true
     end
 

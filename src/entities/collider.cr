@@ -1,6 +1,10 @@
 module Math
   def pfoot(p1, p2, p3)
-    u = ((p3.y - p1.y) * (p2.y - p1.y) + (p3.y - p1.y) * (p2.y - p1.y)) / ((p2.x - p1.x)**2 +(p2.y - p1.y)**2)
+    if ((p2.x - p1.x)**2 + (p2.y - p1.y)**2) == 0
+      u = 0.0
+    else
+      u = ((p3.y - p1.y) * (p2.y - p1.y) + (p3.y - p1.y) * (p2.y - p1.y)) / ((p2.x - p1.x)**2 + (p2.y - p1.y)**2)
+    end
     u = u.clamp(0.0, 1.0)
     intersect = p1 + ((p2 - p1) * u)
     return Math.sqrt((intersect.x - p3.x)**2 + (intersect.y - p3.y)**2)
@@ -24,7 +28,7 @@ module Math
       return false if a1 == a2
       xa = (b2 - b1) / (a1 - a2)
       ya = a1 * xa + b1
-      return (xa < max(min(p1.x,p2.x), min(p3.x,p4.x)) || xa > min(max(p1.x,p2.x), max(p3.x,p4.x)))
+      return (xa < max(min(p1.x,p2.x), min(p3.x,p4.x)) && xa > min(max(p1.x,p2.x), max(p3.x,p4.x)))
     rescue
       return true
     end
@@ -195,8 +199,9 @@ abstract class Collider < Entity
     end
     def collide(collider : Rectangle) : Bool
       points = [collider.origin.x, collider.origin.x + collider.size.x].product([collider.origin.y, collider.origin.y + collider.size.y])
-      points = points.map{|point| Vector.new(point[0], point[1])}
-      return points.map{|point| Math.pfoot(origin1, origin2, point)}.min < radius
+      points = points.map{|point| Vector.new(point[0], point[1]) + collider.position}
+      points.sort_by!{|point| Math.pfoot(position + origin1, position + origin2, point)}
+      return Math.pfoot(position + origin1, position + origin2, points[0], points[1]) < radius
     end
     def collide(collider : Capsule) : Bool
       return Math.pfoot(position + origin1, position + origin2, collider.position + collider.origin1, collider.position + collider.origin2) < collider.radius + radius
