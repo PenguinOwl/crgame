@@ -83,8 +83,9 @@ class Scene < Entity
     active = [] of Tuple(Collider, Tuple(Vector, Vector))
     possible = Deque(Tuple(Collider, Collider)).new
     colliders.map{|collider| {collider, collider.bounds}}.each do |collider, bounds|
+      next unless collider.collidable
       active.select! do |active_collider, active_bounds|
-        if active_bounds[1].x < bounds[0].x || (collider.handlers.size == 0 && active_collider.handlers.size == 0)
+        if active_bounds[1].x < bounds[0].x
           next false
         end
         possible.push({collider, active_collider})

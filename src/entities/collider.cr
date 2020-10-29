@@ -33,26 +33,25 @@ end
 
 abstract class Collider < Entity
   property handlers = [] of Proc(Collider, Nil)
-  property key = ""
+  property tag = ""
+  property collidable = true
   def collide(collider : Collider) : Bool
     case collider
     when Rectangle
-      collide collider
+      collide collider.as Rectangle
     when Circle
-      collide collider
+      collide collider.as Circle
     when Capsule
-      collide collider
+      collide collider.as Capsule
     when Group
-      collide collider
+      collide collider.as Group
     else
       false
     end
   end
   abstract def collide(collider : Rectangle) : Bool
   abstract def collide(collider : Circle) : Bool
-  def collide(collider : Capsule) : Bool
-    collider.collide(self)
-  end
+  abstract def collide(collider : Capsule) : Bool
   def collide(collider : Group) : Bool
     collider.nodes.each do |node|
       return true if collide(node)
@@ -75,8 +74,15 @@ abstract class Collider < Entity
   class Rectangle < Collider
     property origin = Vector.new
     property size = Vector.new
+    @shape : SF::RectangleShape
     def initialize(@origin, @size)
       super()
+      @shape = SF::RectangleShape.new(@size)
+      @shape.position = position + origin
+      @shape.fill_color = SF::Color::Red
+    end
+    def load
+      super
     end
     def collide(collider : Rectangle) : Bool
       return origin.x < collider.origin.x + collider.size.x
@@ -94,8 +100,19 @@ abstract class Collider < Entity
              (collider.origin.x + collider.radius > origin.x ||
               collider.origin.x - collider.radius < origin.x + size.x)
     end
+    def collide(collider : Capsule) : Bool
+      collider.collide(self)
+    end
     def bounds
       return {position + origin, position + origin + size}
+    end
+    def update
+      @shape.position = position + origin
+      true
+    end
+    def render(target, states)
+      super
+      target.draw(@shape, states)
     end
   end
   class Circle < Collider
@@ -119,6 +136,9 @@ abstract class Collider < Entity
     def collide(collider : Rectangle) : Bool
       return collider.collide(self)
     end
+    def collide(collider : Capsule) : Bool
+      collider.collide(self)
+    end
     def bounds
       return {position - @center_offset, position + @center_offset}
     end
@@ -127,6 +147,7 @@ abstract class Collider < Entity
       true
     end
     def render(target, states)
+      super
       target.draw(@shape, states)
     end
   end
@@ -138,8 +159,10 @@ abstract class Collider < Entity
     def collide(collider : Circle) : Bool
       collider.collide(self)
     end
+    def collide(collider : Capsule) : Bool
+      collider.collide(self)
+    end
     def bounds
-      # return nodes.map{|node| node.bounds}
       return {Vector.new, Vector.new}
     end
   end

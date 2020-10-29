@@ -24,7 +24,8 @@ class Player < Entity
   property dashing = false
   property physics = true
   property can_dash = true
-  property collider = Collider::Capsule.new(Vector.new(25, 25), Vector.new(25, 75), 25f32)
+  property collider = PlayerCollider.new(Vector.new(0, 0), Vector.new(50, 100))
+  property hurtbox = Hurtbox.new(Vector.new(25, 25), Vector.new(25, 75), 15f32)
   property facing = -1
   @dash_action = nil
   @jumping = 0
@@ -33,7 +34,9 @@ class Player < Entity
   def load
     @shape.fill_color = SF.color(100, 250, 50)
     collider.offset = ->(){position}
+    hurtbox.offset = ->(){position}
     add collider
+    add hurtbox
   end
   def render(target, states)
   end
@@ -96,6 +99,9 @@ class Player < Entity
         @velocity.x = Engine.lerp(@velocity.x, target, rate)
       else
         @velocity.x *= 0.8
+        if on_ground? && @velocity.x.abs < 100
+          @velocity.x = 0
+        end
       end
     end
 
@@ -125,8 +131,9 @@ class Player < Entity
             @velocity = Vector.new
             @physics = false
             @controllable = false
+            Engine.instance.freeze 2
           end
-          action.frame 3 do
+          action.frame 2 do
             velocity = Vector.new
             norm_check = 0
             if Engine.input.left_held? || Engine.input.right_held?
@@ -146,11 +153,11 @@ class Player < Entity
             @controllable = true
           end
           stored_velo = 0f32
-          action.frame 10 do
+          action.frame 7 do
             stored_velo = @velocity.x
             @velocity /= 5
           end
-          action.frame 14 do
+          action.frame 10 do
             @velocity.x = stored_velo / 3
             end_dash
           end

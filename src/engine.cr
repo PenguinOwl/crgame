@@ -6,6 +6,7 @@ alias Vector = SF::Vector2f
 
 class Engine
   property scene : Scene
+  property freeze_time = 0.0
   @@instance : Engine | Nil
   @@time = SF.seconds(0)
   @@input : Input = Input.new
@@ -36,8 +37,21 @@ class Engine
     end
   end
 
+  def freeze(time : Float64)
+    @freeze_time = Math.max(@freeze_time, time)
+  end
+
+  def freeze(time : Int32)
+    freeze((time/60).to_f)
+  end
+
   def update(time)
-    @@time = time
+    if time.as_seconds < @freeze_time
+      @freeze_time -= time.as_seconds
+      return
+    end
+    @@time = time - SF.seconds(@freeze_time)
+    @freeze_time = Math.max(@freeze_time - time.as_seconds, 0.0)
     @scene.update
   end
 
