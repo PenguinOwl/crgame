@@ -14,9 +14,9 @@ module Game
   engine = Engine.new(Scene.new, input)
   player = Player.new
   testbox = TestBox.new
-  testbox2 = TestBox.new
+  testbox2 = Solid.new(Vector.new, Vector.new(80, 80))
   testbox.position = {500, 1000}
-  testbox2.position = {1000, 1000}
+  testbox2.position = {1000, 500}
   player_display = PlayerDisplay.new(player, testbox)
   player_display.position = {0, 30}
   engine.scene.add player
@@ -26,6 +26,7 @@ module Game
   engine.scene.add testbox2
   player.position = {100, 100}
   window.view = SF::View.new(SF.float_rect(0, 0, 1920, 1080))
+
   while window.open?
     while event = window.poll_event
       case event

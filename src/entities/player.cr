@@ -13,6 +13,13 @@ struct SF::Vector2(T)
     rad = -1 * rad + Math::PI / 2
     return SF::Vector2.new(x*Math.cos(rad) - y*Math.sin(rad), x*Math.sin(rad) + y*Math.cos(rad))
   end
+  def norm
+    return Math.sqrt(x**2 + y**2)
+  end
+  def normalize
+    norm_val = norm
+    return SF::Vector2.new(x/norm_val, y/norm_val)
+  end
 end
 
 class Player < Entity
@@ -32,8 +39,8 @@ class Player < Entity
   property attacking = false
   property physics = true
   property can_dash = true
-  property collider = PlayerCollider.new(Vector.new(0, 0), Vector.new(50, 100))
-  property hurtbox = Hurtbox.new(Vector.new(25, 25), Vector.new(25, 75), 15f32)
+  property collider = Actor.new(nil, Vector.new(0, 0), Vector.new(50, 100))
+  property hurtbox = Hurtbox.new(nil, Vector.new(25, 25), Vector.new(25, 75), 15f32)
   property facing = -1
   @dash_action = nil
   @jumping = 0
@@ -44,6 +51,75 @@ class Player < Entity
     @shape.fill_color = SF.color(100, 250, 50)
     collider.offset = ->(){position}
     hurtbox.offset = ->(){position}
+    collider.owner = self
+    hurtbox.owner = self
+    collider.on do |object|
+      case object
+      when Solid
+        solid = object
+        collider_bounds = collider.bounds
+        solid_bounds = solid.bounds
+        case {@velocity.x.sign, @velocity.y.sign}
+        when {0, 0}
+          next
+        when {0, 1}
+          collider.collision_direction |= Actor::Direction::Down
+        when {0, -1}
+          collider.collision_direction |= Actor::Direction::Up
+        when {1, 0}
+          collider.collision_direction |= Actor::Direction::Right
+        when {-1, 0}
+          collider.collision_direction |= Actor::Direction::Left
+        when {1, 1}
+          collider_corner = collider_bounds[1]
+          solid_corner = solid_bounds[0]
+          overlap = solid_corner - collider_corner
+          if overlap.normalize.x > @velocity.normalize.x
+            collider.collision_direction |= Actor::Direction::Left
+            self.position += Vector.new(overlap.x, 0)
+          else
+            collider.collision_direction |= Actor::Direction::Down
+            self.position += Vector.new(0, overlap.y)
+          end
+        when {1, -1}
+          collider_corner = Vector.new(collider_bounds[1].x, collider_bounds[0].y)
+          solid_corner = Vector.new(solid_bounds[0].x, solid_bounds[1].y)
+          overlap = solid_corner - collider_corner
+          if overlap.normalize.x > @velocity.normalize.x
+            collider.collision_direction |= Actor::Direction::Left
+            self.position += Vector.new(overlap.x, 0)
+          else
+            collider.collision_direction |= Actor::Direction::Up
+            self.position += Vector.new(0, overlap.y)
+          end
+        when {-1, 1}
+          collider_corner = Vector.new(collider_bounds[0].x, collider_bounds[1].y)
+          solid_corner = Vector.new(solid_bounds[1].x, solid_bounds[0].y)
+          overlap = solid_corner - collider_corner
+          puts overlap
+          if overlap.normalize.x > @velocity.normalize.x
+            collider.collision_direction |= Actor::Direction::Right
+            self.position += Vector.new(overlap.x, 0)
+            puts "kicked right"
+          else
+            collider.collision_direction |= Actor::Direction::Down
+            self.position += Vector.new(0, overlap.y)
+            puts "kicked down"
+          end
+        when {-1, -1}
+          collider_corner = collider_bounds[0]
+          solid_corner = solid_bounds[1]
+          overlap = solid_corner - collider_corner
+          if overlap.normalize.x > @velocity.normalize.x
+            collider.collision_direction |= Actor::Direction::Right
+            self.position += Vector.new(overlap.x, 0)
+          else
+            collider.collision_direction |= Actor::Direction::Up
+            self.position += Vector.new(0, overlap.y)
+          end
+        end
+      end
+    end
     add collider
     add hurtbox
   end
@@ -81,16 +157,6 @@ class Player < Entity
       end
     end
 
-    # Jump input bypasses physics
-    if controllable && on_ground? && Engine.input.consume_jump
-      @jumping = 5
-      dash = end_dash
-      @velocity.y += dash ? -400 : -800
-      if dash
-        @velocity.x *= 1.2
-      end
-    end
-
     if physics
       # Left & Right
       if controllable && (Engine.input.right_held? || Engine.input.left_held?)
@@ -114,21 +180,10 @@ class Player < Entity
       end
     end
 
-    # Wall Jumping
-    if controllable && (on_left_wall? || on_right_wall?) && Engine.input.consume_jump
-      dash = end_dash
-      @velocity.x = on_left_wall? ? WALL_JUMP_BOUNCE : WALL_JUMP_BOUNCE * -1
-      @wall_jumping = 6
-      @velocity.y = WALL_JUMP_SPEED * -1
-      if dash
-        @velocity.x *= 0.9
-        @velocity.y *= 1.6
-      end
-    end
-    if physics
-      if wall_jumping?
-        @wall_jumping -= 1
-      end
+    # Refill actions
+    if on_ground?
+      @times_attacked = 0
+      @can_dash = true
     end
 
     # Attacking
@@ -172,18 +227,18 @@ class Player < Entity
               direction_vector.x = facing.to_f32
             end
             direction = Math.atan2(direction_vector.x, direction_vector.y)
-            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, -70).rotate(direction), 50f32, 10.0, 2)
+            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, -70).rotate(direction), 50f32, 10.0, 2)
           end
           action.frame 6 do
-            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, 0).rotate(direction), 50f32, 10.0, 2)
+            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, 0).rotate(direction), 50f32, 10.0, 2)
           end
           action.frame 8 do
-            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, 70).rotate(direction), 50f32, 10.0, 2)
+            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, 70).rotate(direction), 50f32, 10.0, 2)
           end
           action.frame 10 do
             @physics = true
           end
-          action.frame 30 do
+          action.frame 18 do
             @attacking = false
           end
         end
@@ -229,16 +284,16 @@ class Player < Entity
             stored_velo = @velocity.x
             direction = Math.atan2(@velocity.x, @velocity.y)
             @velocity /= 5
-            action.add hitbox = Hitbox.new(start_pos, position + Vector.new(25, 50), 40f32, 5.0, 3)
-            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(100, -130).rotate(direction), 40f32, 10.0, 2)
+            action.add hitbox = Hitbox.new(self, start_pos, position + Vector.new(25, 50), 40f32, 5.0, 3)
+            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(100, -130).rotate(direction), 40f32, 10.0, 2)
           end
           action.frame 8 do
-            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(180, 0).rotate(direction), 25f32, 12.0, 2)
+            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(180, 0).rotate(direction), 25f32, 12.0, 2)
           end
           action.frame 10 do
-            action.add hitbox = Hitbox.new(position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(100, 130).rotate(direction), 35f32, 10.0, 2)
+            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(100, 130).rotate(direction), 35f32, 10.0, 2)
           end
-          action.frame 12 do
+          action.frame 16 do
             @velocity.x = stored_velo / 3
             end_dash
           end
@@ -249,10 +304,31 @@ class Player < Entity
       end
     end
 
-    # Refill actions
-    if on_ground?
-      @times_attacked = 0
-      @can_dash = true
+    # Jump input bypasses physics
+    if controllable && on_ground? && Engine.input.consume_jump
+      @jumping = 5
+      dash = end_dash
+      @velocity.y = dash ? -400f32 : -800f32
+      if dash
+        @velocity.x = DASH_SPEED * 0.8 * facing
+      end
+    end
+
+    # Wall Jumping
+    if controllable && (on_left_wall? || on_right_wall?) && Engine.input.consume_jump
+      dash = end_dash
+      @velocity.x = on_left_wall? ? WALL_JUMP_BOUNCE : WALL_JUMP_BOUNCE * -1
+      @wall_jumping = 6
+      @velocity.y = WALL_JUMP_SPEED * -1
+      if dash
+        @velocity.x *= 0.9
+        @velocity.y *= 1.6
+      end
+    end
+    if physics
+      if wall_jumping?
+        @wall_jumping -= 1
+      end
     end
 
     # Facing

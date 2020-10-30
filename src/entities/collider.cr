@@ -37,7 +37,6 @@ end
 
 abstract class Collider < Entity
   property handlers = [] of Proc(Collider, Nil)
-  property tag = ""
   property collidable = true
   def collide(collider : Collider) : Bool
     case collider
@@ -89,10 +88,12 @@ abstract class Collider < Entity
       super
     end
     def collide(collider : Rectangle) : Bool
-      return origin.x < collider.origin.x + collider.size.x
-        origin.x + origin.size.x > collider.x &&
-        origin.y < collider.y + collider.size.y &&
-        origin.y + origin.size.y > collider.y
+      bounds1 = bounds
+      bounds2 = collider.bounds
+      return bounds1[1].x > bounds2[0].x &&
+        bounds1[0].x < bounds2[1].x &&
+        bounds1[1].y > bounds2[0].y &&
+        bounds1[0].y < bounds2[1].y
     end
     def collide(collider : Circle) : Bool
       return true if origin.x < collider.origin.x &&
@@ -110,12 +111,9 @@ abstract class Collider < Entity
     def bounds
       return {position + origin, position + origin + size}
     end
-    def update
-      @shape.position = position + origin
-      true
-    end
     def render(target, states)
       super
+      @shape.position = position + origin
       target.draw(@shape, states)
     end
   end
@@ -146,12 +144,9 @@ abstract class Collider < Entity
     def bounds
       return {position - @center_offset, position + @center_offset}
     end
-    def update
-      @shape.position = position - @center_offset
-      true
-    end
     def render(target, states)
       super
+      @shape.position = position - @center_offset
       target.draw(@shape, states)
     end
   end
@@ -206,14 +201,12 @@ abstract class Collider < Entity
     def collide(collider : Capsule) : Bool
       return Math.pfoot(position + origin1, position + origin2, collider.position + collider.origin1, collider.position + collider.origin2) < collider.radius + radius
     end
-    def update
+    def render(target, states)
+      super
       center_offset = Vector.new(radius, radius)
       @shape1.position = position + origin1 - center_offset
       @shape2.position = position + origin2 - center_offset
       @shape3.position = position + origin1
-      true
-    end
-    def render(target, states)
       line = [
         SF::Vertex.new(position + origin1),
         SF::Vertex.new(position + origin2)

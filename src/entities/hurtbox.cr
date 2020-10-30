@@ -1,7 +1,9 @@
 class Hurtbox < Collider::Capsule
+  def initialize(@owner, *args)
+    super(*args)
+  end
   def load
     super
-    @tag = "hurtbox"
     color = SF::Color.new(255, 155, 0)
     @shape1.fill_color = color
     @shape2.fill_color = color
@@ -9,20 +11,36 @@ class Hurtbox < Collider::Capsule
   end
 end
 
-class PlayerCollider < Collider::Rectangle
-  def initialize(a, b)
-    super
+class Actor < Collider::Rectangle
+  @[Flags]
+  enum Direction
+    Up
+    Down
+    Left
+    Right
+  end
+  property collision_direction = Direction::None
+  property position_setter : Proc(Vector, Nil) | Nil
+  def initialize(@owner, a, b)
+    super(a, b)
     @shape.fill_color = SF::Color.new(0, 255, 0)
-    @tag = "playerbox"
+  end
+  def unload
+    super
+    @position_setter = nil
+  end
+  def update
+    super
+    collision_direction = Direction::None
   end
 end
 
 class Hitbox < Collider::Capsule
   property damage = 0.0
   property time = 0.0
-  def initialize(origin1, origin2, radius, @damage, frames, @tag = "hurtbox.enemy")
+  def initialize(@owner, origin1, origin2, radius, @damage, frames)
     super(origin1, origin2, radius)
-    @time = frames.to_f / 60
+    @time = frames.to_f / 60 + Engine.time - 1 / 60
     update
   end
   def update

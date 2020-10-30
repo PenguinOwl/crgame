@@ -12,9 +12,6 @@ class PlayerDisplay < Entity
     @text.character_size = 24
   end
   def render(target, states)
-    target.draw @text, states
-  end
-  def update
     @text.string = [
       @player.position.x.round,
       @player.position.y.round,
@@ -24,6 +21,9 @@ class PlayerDisplay < Entity
       @box.touching,
       Engine.instance.scene.debug,
     ].map(&.to_s.rjust(20)).join("\n")
+    target.draw @text, states
+  end
+  def update
     return true
   end
 end

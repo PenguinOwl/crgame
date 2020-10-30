@@ -1,6 +1,7 @@
 abstract class Entity < SF::Transformable
   include SF::Drawable
   property children = [] of Entity
+  property owner : Entity | Nil = nil
   property offset : Proc(Vector) = ->(){Vector.new}
   def position
     vector = super
@@ -18,7 +19,6 @@ abstract class Entity < SF::Transformable
     @children.delete(entity)
   end
   def draw(target : SF::RenderTarget, states : SF::RenderStates)
-    states.transform *= self.transform
     @children.each{|child| target.draw(child)}
     render(target, states)
   end
@@ -38,8 +38,12 @@ abstract class Entity < SF::Transformable
   def load
   end
   def unload
+    @owner = nil
     @children.each(&.unload)
     @children.clear
+  end
+  def finalize
+    unload
   end
 end
 
@@ -77,7 +81,6 @@ class Scene < Entity
   property debug = [] of Tuple(Collider, Collider)
   property colliders = [] of Collider
   def update
-    super
     debug.clear
     colliders.sort_by!{|collider| collider.bounds[0].x.to_i}
     active = [] of Tuple(Collider, Tuple(Vector, Vector))
@@ -100,6 +103,7 @@ class Scene < Entity
         pair[1].trigger pair[0]
       end
     end
+    super
     true
   end
 end
