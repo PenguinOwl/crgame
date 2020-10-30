@@ -12,6 +12,8 @@ class Hurtbox < Collider::Capsule
 end
 
 class Actor < Collider::Rectangle
+  LEEWAY = 2f32
+
   @[Flags]
   enum Direction
     Up
@@ -19,19 +21,16 @@ class Actor < Collider::Rectangle
     Left
     Right
   end
+  getter tangent = false
   property collision_direction = Direction::None
-  property position_setter : Proc(Vector, Nil) | Nil
   def initialize(@owner, a, b)
     super(a, b)
     @shape.fill_color = SF::Color.new(0, 255, 0)
   end
-  def unload
-    super
-    @position_setter = nil
-  end
   def update
     super
     collision_direction = Direction::None
+    true
   end
 end
 

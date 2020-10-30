@@ -2,6 +2,7 @@ require "crsfml"
 require "./entity"
 require "./engine"
 require "./input"
+require "./entities/collider"
 require "./entities/**"
 
 module Game
@@ -14,7 +15,7 @@ module Game
   engine = Engine.new(Scene.new, input)
   player = Player.new
   testbox = TestBox.new
-  testbox2 = Solid.new(Vector.new, Vector.new(80, 80))
+  testbox2 = Solid.new(Vector.new, Vector.new(300, 400))
   testbox.position = {500, 1000}
   testbox2.position = {1000, 500}
   player_display = PlayerDisplay.new(player, testbox)

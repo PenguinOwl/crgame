@@ -90,10 +90,10 @@ abstract class Collider < Entity
     def collide(collider : Rectangle) : Bool
       bounds1 = bounds
       bounds2 = collider.bounds
-      return bounds1[1].x > bounds2[0].x &&
-        bounds1[0].x < bounds2[1].x &&
-        bounds1[1].y > bounds2[0].y &&
-        bounds1[0].y < bounds2[1].y
+      return bounds1[1].x >= bounds2[0].x &&
+        bounds1[0].x <= bounds2[1].x &&
+        bounds1[1].y >= bounds2[0].y &&
+        bounds1[0].y <= bounds2[1].y
     end
     def collide(collider : Circle) : Bool
       return true if origin.x < collider.origin.x &&

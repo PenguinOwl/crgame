@@ -12,18 +12,15 @@ class PlayerDisplay < Entity
     @text.character_size = 24
   end
   def render(target, states)
-    @text.string = [
-      @player.position.x.round,
-      @player.position.y.round,
-      @player.velocity.x.round,
-      @player.velocity.y.round,
-      @player.facing,
-      @box.touching,
-      Engine.instance.scene.debug,
-    ].map(&.to_s.rjust(20)).join("\n")
     target.draw @text, states
   end
   def update
+    super
+    @text.string = [
+      @player.velocity.x.floor,
+      @player.velocity.y.floor,
+      @player.collider.collision_direction,
+    ].map(&.to_s.rjust(20)).join("\n")
     return true
   end
 end

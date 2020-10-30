@@ -44,6 +44,7 @@ class Player < Entity
   property facing = -1
   @dash_action = nil
   @jumping = 0
+  @coyote = 0
   @wall_jumping = 0
   @times_attacked = 0
   @shape = SF::RectangleShape.new({50, 100})
@@ -59,63 +60,148 @@ class Player < Entity
         solid = object
         collider_bounds = collider.bounds
         solid_bounds = solid.bounds
+        next_frame_bounds = collider_bounds.map{|point| point + (@velocity * Engine.time)}
+        next unless next_frame_bounds[1].x >= solid_bounds[0].x &&
+          next_frame_bounds[0].x <= solid_bounds[1].x &&
+          next_frame_bounds[1].y >= solid_bounds[0].y &&
+          next_frame_bounds[0].y <= solid_bounds[1].y
+        next if @velocity.norm == 0
         case {@velocity.x.sign, @velocity.y.sign}
-        when {0, 0}
-          next
         when {0, 1}
-          collider.collision_direction |= Actor::Direction::Down
+          collider_left = collider_bounds[0].x
+          collider_right = collider_bounds[1].x
+          solid_left = solid_bounds[0].x
+          solid_right = solid_bounds[1].x
+          overlap_left = (solid_left - collider_left) * -1
+          overlap_right = solid_right - collider_right
+          overlap_bottom = solid_bounds[0].y - collider_bounds[1].y
+          if overlap_left > 0 && overlap_right > 0
+            collider.collision_direction |= Actor::Direction::Down
+            self.position += Vector.new(0, overlap_bottom)
+          else
+            if overlap_left > 0 && overlap_right < -0.1 * collider.size.x
+              collider.collision_direction |= Actor::Direction::Left
+              self.position -= Vector.new(((overlap_right + collider.size.x) * -1 + 0.01).clamp(nil, 0f32), 0)
+            elsif overlap_right > 0 && overlap_left < -0.1 * collider.size.x
+              collider.collision_direction |= Actor::Direction::Right
+              self.position += Vector.new(((overlap_left + collider.size.x) * -1 + 0.01).clamp(nil, 0f32), 0)
+            else
+              collider.collision_direction |= Actor::Direction::Down
+              self.position += Vector.new(0, overlap_bottom)
+            end
+          end
         when {0, -1}
-          collider.collision_direction |= Actor::Direction::Up
+          collider_left = collider_bounds[0].x
+          collider_right = collider_bounds[1].x
+          solid_left = solid_bounds[0].x
+          solid_right = solid_bounds[1].x
+          overlap_left = (solid_left - collider_left) * -1
+          overlap_right = solid_right - collider_right
+          overlap_top = solid_bounds[1].y - collider_bounds[0].y
+          if overlap_left > 0 && overlap_right > 0
+            collider.collision_direction |= Actor::Direction::Up
+            self.position += Vector.new(0, overlap_top)
+          else
+            if overlap_left > 0 && overlap_right < -0.1 * collider.size.x
+              collider.collision_direction |= Actor::Direction::Left
+              self.position -= Vector.new(((overlap_right + collider.size.x) * -1 + 0.01).clamp(nil, 0f32), 0)
+            elsif overlap_right > 0 && overlap_left < -0.1 * collider.size.x
+              collider.collision_direction |= Actor::Direction::Right
+              self.position += Vector.new(((overlap_left + collider.size.x) * -1 + 0.01).clamp(nil, 0f32), 0)
+            else
+              collider.collision_direction |= Actor::Direction::Up
+              self.position += Vector.new(0, overlap_top)
+            end
+          end
         when {1, 0}
-          collider.collision_direction |= Actor::Direction::Right
+          collider_botttom = collider_bounds[0].y
+          collider_top = collider_bounds[1].y
+          solid_botttom = solid_bounds[0].y
+          solid_top = solid_bounds[1].y
+          overlap_top = solid_top - collider_top
+          overlap_bottom = (solid_botttom - collider_botttom) * -1
+          overlap_right = solid_bounds[0].x - collider_bounds[1].x
+          if overlap_top > 0 && overlap_bottom > 0
+            collider.collision_direction |= Actor::Direction::Right
+            self.position += Vector.new(overlap_right, 0)
+          else
+            if overlap_bottom > 0 && overlap_top < -0.9 * collider.size.y
+              collider.collision_direction |= Actor::Direction::Up
+              self.position -= Vector.new(0, ((overlap_top + collider.size.y) * -1 + 0.01).clamp(nil, 0f32))
+            elsif overlap_top > 0 && overlap_bottom < -0.7 * collider.size.y
+              collider.collision_direction |= Actor::Direction::Down
+              self.position += Vector.new(0, ((overlap_bottom + collider.size.y) * -1 + 0.01).clamp(nil, 0f32))
+            else
+              collider.collision_direction |= Actor::Direction::Right
+              self.position += Vector.new(overlap_right, 0)
+            end
+          end
         when {-1, 0}
-          collider.collision_direction |= Actor::Direction::Left
+          collider_botttom = collider_bounds[0].y
+          collider_top = collider_bounds[1].y
+          solid_botttom = solid_bounds[0].y
+          solid_top = solid_bounds[1].y
+          overlap_top = solid_top - collider_top
+          overlap_bottom = (solid_botttom - collider_botttom) * -1
+          overlap_left = solid_bounds[1].x - collider_bounds[0].x
+          if overlap_top > 0 && overlap_bottom > 0
+            collider.collision_direction |= Actor::Direction::Left
+            self.position += Vector.new(overlap_left, 0)
+          else
+            if overlap_bottom > 0 && overlap_top < -0.9 * collider.size.y
+              collider.collision_direction |= Actor::Direction::Up
+              self.position -= Vector.new(0, ((overlap_top + collider.size.y) * -1 + 0.01).clamp(nil, 0f32))
+            elsif overlap_top > 0 && overlap_bottom < -0.7 * collider.size.y
+              collider.collision_direction |= Actor::Direction::Down
+              self.position += Vector.new(0, ((overlap_bottom + collider.size.y) * -1 + 0.01).clamp(nil, 0f32))
+            else
+              collider.collision_direction |= Actor::Direction::Left
+              self.position += Vector.new(overlap_left, 0)
+            end
+          end
         when {1, 1}
           collider_corner = collider_bounds[1]
           solid_corner = solid_bounds[0]
-          overlap = solid_corner - collider_corner
-          if overlap.normalize.x > @velocity.normalize.x
-            collider.collision_direction |= Actor::Direction::Left
-            self.position += Vector.new(overlap.x, 0)
+          overlap = collider_corner - solid_corner
+          if overlap.normalize.x < @velocity.normalize.x
+            collider.collision_direction |= Actor::Direction::Right
+            self.position -= Vector.new(overlap.x, 0)
           else
             collider.collision_direction |= Actor::Direction::Down
-            self.position += Vector.new(0, overlap.y)
+            self.position -= Vector.new(0, overlap.y)
           end
         when {1, -1}
           collider_corner = Vector.new(collider_bounds[1].x, collider_bounds[0].y)
           solid_corner = Vector.new(solid_bounds[0].x, solid_bounds[1].y)
-          overlap = solid_corner - collider_corner
-          if overlap.normalize.x > @velocity.normalize.x
-            collider.collision_direction |= Actor::Direction::Left
-            self.position += Vector.new(overlap.x, 0)
+          overlap = collider_corner - solid_corner
+          if overlap.normalize.x < @velocity.normalize.x
+            collider.collision_direction |= Actor::Direction::Right
+            self.position -= Vector.new(overlap.x, 0)
           else
             collider.collision_direction |= Actor::Direction::Up
-            self.position += Vector.new(0, overlap.y)
+            self.position -= Vector.new(0, overlap.y)
           end
         when {-1, 1}
           collider_corner = Vector.new(collider_bounds[0].x, collider_bounds[1].y)
           solid_corner = Vector.new(solid_bounds[1].x, solid_bounds[0].y)
-          overlap = solid_corner - collider_corner
-          puts overlap
+          overlap = collider_corner - solid_corner
           if overlap.normalize.x > @velocity.normalize.x
-            collider.collision_direction |= Actor::Direction::Right
-            self.position += Vector.new(overlap.x, 0)
-            puts "kicked right"
+            collider.collision_direction |= Actor::Direction::Left
+            self.position -= Vector.new(overlap.x, 0)
           else
             collider.collision_direction |= Actor::Direction::Down
-            self.position += Vector.new(0, overlap.y)
-            puts "kicked down"
+            self.position -= Vector.new(0, overlap.y) #
           end
         when {-1, -1}
           collider_corner = collider_bounds[0]
           solid_corner = solid_bounds[1]
-          overlap = solid_corner - collider_corner
+          overlap = collider_corner - solid_corner
           if overlap.normalize.x > @velocity.normalize.x
-            collider.collision_direction |= Actor::Direction::Right
-            self.position += Vector.new(overlap.x, 0)
+            collider.collision_direction |= Actor::Direction::Left
+            self.position -= Vector.new(overlap.x, 0)
           else
             collider.collision_direction |= Actor::Direction::Up
-            self.position += Vector.new(0, overlap.y)
+            self.position -= Vector.new(0, overlap.y)
           end
         end
       end
@@ -124,10 +210,20 @@ class Player < Entity
     add hurtbox
   end
   def render(target, states)
+    super
+    @collider.collision_direction = Actor::Direction::None
   end
   def update
     # Initial move
-    self.position += velocity * Engine.time
+    move_x = @velocity.x
+    if (on_right_wall? && @velocity.x > 0) || (on_left_wall? && @velocity.x < 0)
+      move_x = 0f32
+    end
+    move_y = @velocity.y
+    if (on_ground? && @velocity.y > 0) || (on_ceiling? && @velocity.y < 0)
+      move_y = 0f32
+    end
+    self.position += Vector.new(move_x, move_y) * Engine.time
 
     if physics
       # Jumping & Gravity
@@ -139,11 +235,8 @@ class Player < Entity
         gravity = 5000
       end
       @velocity += Vector.new(0, gravity * Engine.time)
-      if position.x + 50 >= 1920 || position.x <= 0
-        @velocity.x = 0
-      end
-      if position.y + 100 >= 1080
-        @velocity.y = 0
+      if on_ground?
+        @velocity.y = @velocity.y.clamp(nil, 0f32)
       end
 
       if jumping?
@@ -184,6 +277,11 @@ class Player < Entity
     if on_ground?
       @times_attacked = 0
       @can_dash = true
+      unless jumping?
+        @coyote = 3
+      end
+    else
+      @coyote -= 1
     end
 
     # Attacking
@@ -305,7 +403,7 @@ class Player < Entity
     end
 
     # Jump input bypasses physics
-    if controllable && on_ground? && Engine.input.consume_jump
+    if controllable && @coyote > 0 && Engine.input.consume_jump
       @jumping = 5
       dash = end_dash
       @velocity.y = dash ? -400f32 : -800f32
@@ -352,13 +450,20 @@ class Player < Entity
     @wall_jumping > 0
   end
   def on_ground?
-    self.position.y >= 1080 - 100
+    collider.collision_direction.includes?(Actor::Direction::Down) ||
+      self.position.y >= 1080 - 100
+  end
+  def on_ceiling?
+    collider.collision_direction.includes?(Actor::Direction::Up) ||
+      self.position.y <= 0
   end
   def on_left_wall?
-    self.position.x < 15
+    collider.collision_direction.includes?(Actor::Direction::Left) ||
+      self.position.x < 15
   end
   def on_right_wall?
-    self.position.x > 1920 - 50 - 15
+    collider.collision_direction.includes?(Actor::Direction::Right) ||
+      self.position.x > 1920 - 50 - 15
   end
   def end_dash
     if action = @dash_action
