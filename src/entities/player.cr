@@ -44,7 +44,7 @@ class Player < Entity
   property facing = -1
   @dash_action = nil
   @jumping = 0
-  @coyote = 0
+  @coyote = 0f32
   @wall_jumping = 0
   @times_attacked = 0
   @shape = SF::RectangleShape.new({50, 100})
@@ -236,7 +236,7 @@ class Player < Entity
       end
       @velocity += Vector.new(0, gravity * Engine.time)
       if on_ground?
-        @velocity.y = @velocity.y.clamp(nil, 0f32)
+        @velocity.y = @velocity.y.clamp(nil, 80f32)
       end
 
       if jumping?
@@ -278,10 +278,10 @@ class Player < Entity
       @times_attacked = 0
       @can_dash = true
       unless jumping?
-        @coyote = 3
+        @coyote = 5f32 / 60
       end
     else
-      @coyote -= 1
+      @coyote = Math.max(0f32, @coyote - Engine.time)
     end
 
     # Attacking
@@ -405,6 +405,7 @@ class Player < Entity
     # Jump input bypasses physics
     if controllable && @coyote > 0 && Engine.input.consume_jump
       @jumping = 5
+      @coyote = 0
       dash = end_dash
       @velocity.y = dash ? -400f32 : -800f32
       if dash
