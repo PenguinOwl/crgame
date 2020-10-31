@@ -37,6 +37,16 @@ class Engine
     end
   end
 
+  def self.lerp(current : Vector, target : Vector, rate)
+    movement = rate * time
+    diff = target - current
+    if movement - diff.norm > 0 || (movement - diff.norm).abs < 0.01
+      return target
+    else
+      return current + (diff.normalize * movement)
+    end
+  end
+
   def freeze(time : Float64)
     @freeze_time = Math.max(@freeze_time, time)
   end

@@ -75,13 +75,13 @@ abstract class Collider < Entity
     Engine.instance.scene.colliders.delete(self)
   end
   class Rectangle < Collider
-    property origin = Vector.new
     property size = Vector.new
     @shape : SF::RectangleShape
-    def initialize(@origin, @size)
+    def initialize(position, @size)
       super()
       @shape = SF::RectangleShape.new(@size)
-      @shape.position = position + origin
+      self.position = position
+      @shape.position = position
       @shape.fill_color = SF::Color::Red
     end
     def load
@@ -96,24 +96,24 @@ abstract class Collider < Entity
         bounds1[0].y <= bounds2[1].y
     end
     def collide(collider : Circle) : Bool
-      return true if origin.x < collider.origin.x &&
-        collider.origin.x < origin.x + size.x &&
-        origin.y < collider.origin.y &&
-        collider.origin.y < origin.y + size.y
-      return (collider.origin.x + collider.radius > origin.x ||
-              collider.origin.x - collider.radius < origin.x + size.x) &&
-             (collider.origin.x + collider.radius > origin.x ||
-              collider.origin.x - collider.radius < origin.x + size.x)
+      return true if position.x < collider.position.x &&
+        collider.position.x < position.x + size.x &&
+        position.y < collider.position.y &&
+        collider.position.y < position.y + size.y
+      return (collider.position.x + collider.radius > position.x ||
+              collider.position.x - collider.radius < position.x + size.x) &&
+             (collider.position.x + collider.radius > position.x ||
+              collider.position.x - collider.radius < position.x + size.x)
     end
     def collide(collider : Capsule) : Bool
       collider.collide(self)
     end
     def bounds
-      return {position + origin, position + origin + size}
+      return {position, position + size}
     end
     def render(target, states)
       super
-      @shape.position = position + origin
+      @shape.position = position
       target.draw(@shape, states)
     end
   end
