@@ -10,6 +10,8 @@ class Engine
   @@instance : Engine | Nil
   @@time = SF.seconds(0)
   @@input : Input = Input.new
+  @frame_step = false
+  @step_ff_time : Float64 = 0
   def initialize(@scene, input)
     @@input = input
     @@instance = self
@@ -56,6 +58,21 @@ class Engine
   end
 
   def update(time)
+    if Engine.input.step_held?
+      @step_ff_time += time.as_seconds
+    else
+      @step_ff_time = 0
+    end
+    if Engine.input.consume_free
+      @frame_step = false
+    end
+    if @frame_step
+      unless Engine.input.consume_step || @step_ff_time > 0.5
+        return
+      end
+    else
+      @frame_step = true if Engine.input.consume_step
+    end
     if time.as_seconds < @freeze_time
       @freeze_time -= time.as_seconds
       return

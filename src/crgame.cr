@@ -3,6 +3,7 @@ require "./entity"
 require "./engine"
 require "./input"
 require "./entities/collider"
+require "./entities/physical"
 require "./entities/**"
 
 module Game
@@ -17,7 +18,10 @@ module Game
   input.load_config(Input::Config.new)
   engine = Engine.new(Scene.new, input)
   player = Player.new
-  player_display = PlayerDisplay.new(player)
+  player.position = {100, 100}
+  enemy = Enemy.new
+  enemy.position = {1100, -900}
+  player_display = PlayerDisplay.new(player, enemy)
   player_display.position = {0, 30}
   testbox1 = Solid.new(Vector.new(500, 0), Vector.new(300, 400))
   testbox2 = Solid.new(Vector.new(1000, -500), Vector.new(200, 100))
@@ -28,7 +32,7 @@ module Game
   engine.scene.add testbox1
   engine.scene.add testbox2
   engine.scene.add testbox3
-  player.position = {100, 100}
+  engine.scene.add enemy
   @@window.view = SF::View.new(SF.float_rect(0, 0, 1920, 1080))
   while @@window.open?
     while event = @@window.poll_event

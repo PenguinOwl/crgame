@@ -2,7 +2,8 @@ class PlayerDisplay < Entity
   @font = SF::Font.from_file("/usr/share/fonts/OTF/Hermit-Regular.otf")
   @text = SF::Text.new
   @player : Player
-  def initialize(@player)
+  @enemy : Enemy
+  def initialize(@player, @enemy)
     super()
     @offset = ->(){Game.window.view.center - Game.window.view.size / 2}
   end
@@ -24,6 +25,8 @@ class PlayerDisplay < Entity
       @player.velocity.y.floor,
       @player.collider.collision_direction,
       @player.last_ground,
+      @enemy.health,
+      @enemy.invuln_time,
     ].map(&.to_s.rjust(20)).join("\n")
     return true
   end

@@ -78,10 +78,14 @@ class Action < Entity
 end
 
 class Scene < Entity
-  property debug = [] of Tuple(Collider, Collider)
   property colliders = [] of Collider
   def update
-    debug.clear
+    run_collision
+    super
+    run_collision
+    true
+  end
+  def run_collision
     colliders.sort_by!{|collider| collider.bounds[0].x.to_i}
     active = [] of Tuple(Collider, Tuple(Vector, Vector))
     possible = Deque(Tuple(Collider, Collider)).new
@@ -92,7 +96,6 @@ class Scene < Entity
           next false
         end
         possible.push({collider, active_collider})
-        debug << {collider, active_collider}
         next true
       end
       active << {collider, bounds}
@@ -103,7 +106,5 @@ class Scene < Entity
         pair[1].trigger pair[0]
       end
     end
-    super
-    true
   end
 end

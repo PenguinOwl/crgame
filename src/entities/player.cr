@@ -31,7 +31,7 @@ class Player < Entity
   WALL_JUMP_BOUNCE = 1400f32
   WALL_JUMP_SPEED = 900f32
 
-  DASH_SPEED = 2400f32
+  DASH_SPEED = 2900f32
 
   property velocity = Vector.new(0, 0)
   property controllable = true
@@ -42,19 +42,19 @@ class Player < Entity
   property collider = Actor.new(nil, Vector.new(0, 0), Vector.new(50, 100))
   property hurtbox = Hurtbox.new(nil, Vector.new(25, 25), Vector.new(25, 75), 15f32)
   property facing = -1
+  property times_attacked = 0
   @dash_action = nil
   @jumping = 0
   @coyote = 0f32
   @wall_jumping = 0
-  @times_attacked = 0
   getter last_ground = Vector.new
   @shape = SF::RectangleShape.new({50, 100})
   def load
     @shape.fill_color = SF.color(100, 250, 50)
-    collider.offset = ->(){position}
     hurtbox.offset = ->(){position}
-    collider.owner = self
     hurtbox.owner = self
+    collider.offset = ->(){position}
+    collider.owner = self
     collider.on do |object|
       case object
       when Solid
@@ -230,6 +230,8 @@ class Player < Entity
       # Jumping & Gravity
       if jumping? || wall_jumping?
         gravity = 50
+      elsif attacking && @times_attacked == 0
+        gravity = 0
       elsif Engine.input.jump_held? && velocity.y.abs < 30
         gravity = 500
       else
@@ -296,7 +298,7 @@ class Player < Entity
           action.frame 1 do
             if @velocity.y > 0 && !on_ground?
               case @times_attacked
-              when 1
+              when 0..1
                 @velocity.y *= 0.3
               when 2
                 @velocity.y *= 0.5
@@ -310,6 +312,7 @@ class Player < Entity
           end
           direction_vector = Vector.new
           direction = 0.0
+          face_dir = 0
           action.frame 4 do
             norm_check = 0
             if Engine.input.left_held? || Engine.input.right_held?
@@ -326,13 +329,14 @@ class Player < Entity
               direction_vector.x = facing.to_f32
             end
             direction = Math.atan2(direction_vector.x, direction_vector.y)
-            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, -70).rotate(direction), 50f32, 10.0, 2)
+            face_dir = facing
+            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, -70f32 * face_dir).rotate(direction), 50f32, 10.0, 2)
           end
           action.frame 6 do
             action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, 0).rotate(direction), 50f32, 10.0, 2)
           end
           action.frame 8 do
-            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, 70).rotate(direction), 50f32, 10.0, 2)
+            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(150, 70f32 * face_dir).rotate(direction), 50f32, 10.0, 2)
           end
           action.frame 10 do
             @physics = true
@@ -379,18 +383,20 @@ class Player < Entity
           end
           stored_velo = 0f32
           direction = 0.0
+          face_dir = 1
           action.frame 7 do
             stored_velo = @velocity.x
             direction = Math.atan2(@velocity.x, @velocity.y)
             @velocity /= 5
+            face_dir = facing
             action.add hitbox = Hitbox.new(self, start_pos, position + Vector.new(25, 50), 40f32, 5.0, 3)
-            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(100, -130).rotate(direction), 40f32, 10.0, 2)
+            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(100, -60f32 * face_dir).rotate(direction), 40f32, 10.0, 2)
           end
           action.frame 8 do
-            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(180, 0).rotate(direction), 25f32, 12.0, 2)
+            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(190, 0).rotate(direction), 25f32, 12.0, 2)
           end
           action.frame 10 do
-            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(100, 130).rotate(direction), 35f32, 10.0, 2)
+            action.add hitbox = Hitbox.new(self, position + Vector.new(25, 50), position + Vector.new(25, 50) + Vector.new(100, 60f32 * face_dir).rotate(direction), 35f32, 10.0, 2)
           end
           action.frame 16 do
             @velocity.x = stored_velo / 3
@@ -410,7 +416,7 @@ class Player < Entity
       dash = end_dash
       @velocity.y = dash ? -400f32 : -800f32
       if dash
-        @velocity.x = DASH_SPEED * 0.8 * facing
+        @velocity.x = DASH_SPEED * 0.6 * facing
       end
     end
 

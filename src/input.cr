@@ -8,12 +8,14 @@ INPUTS = {
   "down" => "semicolon",
   "attack" => "x",
   "dash" => "z",
+  "step" => "r shift",
+  "free" => "l bracket"
 }
 class Input
   class Config
     include JSON::Serializable
     {% for input, key in INPUTS %}
-      property {{input.id}}_keys : Array(SF::Keyboard::Key) = [SF::Keyboard::{{key.id.capitalize}}]
+      property {{input.id}}_keys : Array(SF::Keyboard::Key) = [SF::Keyboard::{{key.id.split(" ").map{|e| e.capitalize}.join("").id}}]
     {% end %}
     def initialize
     end

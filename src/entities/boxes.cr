@@ -37,6 +37,13 @@ end
 class Hitbox < Collider::Capsule
   property damage = 0.0
   property time = 0.0
+  setter direction : Vector | Nil = nil
+  def direction
+    if nil_checked_direction = @direction
+      return nil_checked_direction
+    end
+    return (origin2 - origin1).normalize
+  end
   def initialize(@owner, origin1, origin2, radius, @damage, frames)
     super(origin1, origin2, radius)
     @time = frames.to_f / 60 + Engine.time - 1 / 60
