@@ -3,7 +3,7 @@ class Enemy < Entity
 
   include Physical
 
-  property hurtbox = Hurtbox.new(nil, Vector.new, Vector.new(0, 60), 40f32)
+  property hurtbox = Hurtbox.new(nil, Vector.new, Vector.new(0, 60), 50f32)
   getter max_health = 1000.0
   property health = 0.0
   getter weight = 1.0
@@ -14,6 +14,7 @@ class Enemy < Entity
   def load
     @health = max_health
     hurtbox.offset = ->(){position}
+    hurtbox.position = Vector.new(30, 30)
     hurtbox.owner = self
     add hurtbox
     hurtbox.on do |hitbox|

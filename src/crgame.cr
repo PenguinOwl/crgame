@@ -7,6 +7,7 @@ require "./entities/physical"
 require "./entities/**"
 
 module Game
+  puts Dir.current
   def self.window
     @@window
   end

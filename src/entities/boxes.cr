@@ -46,7 +46,7 @@ class Hitbox < Collider::Capsule
   end
   def initialize(@owner, origin1, origin2, radius, @damage, frames)
     super(origin1, origin2, radius)
-    @time = frames.to_f / 60 + Engine.time - 1 / 60
+    @time = frames.to_f / 60
     update
   end
   def update

@@ -11,11 +11,11 @@ module Physical
         solid = object
         collider_bounds = collider.bounds
         solid_bounds = solid.bounds
-        next_frame_bounds = collider_bounds.map{|point| point + (@velocity * Engine.time * 3)}
-        next unless next_frame_bounds[1].x >= solid_bounds[0].x &&
-          next_frame_bounds[0].x <= solid_bounds[1].x &&
-          next_frame_bounds[1].y >= solid_bounds[0].y &&
-          next_frame_bounds[0].y <= solid_bounds[1].y
+        next_frame_bounds = collider_bounds.map{|point| point + (@velocity * Engine.time)}
+        next unless next_frame_bounds[1].x > solid_bounds[0].x &&
+          next_frame_bounds[0].x < solid_bounds[1].x &&
+          next_frame_bounds[1].y > solid_bounds[0].y &&
+          next_frame_bounds[0].y < solid_bounds[1].y
         next if @velocity.norm == 0
         case {@velocity.x.sign, @velocity.y.sign}
         when {0, 1}
